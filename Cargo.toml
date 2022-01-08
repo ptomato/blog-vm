@@ -1,0 +1,12 @@
+[package]
+name = "lc3"
+version = "0.0.0"
+edition = "2021"
+license = "CC0"
+
+[dependencies]
+bitmatch = "0.1"
+bytemuck = "1"
+byteorder = "1"
+console = "0.15"
+multimap = "0.8"
