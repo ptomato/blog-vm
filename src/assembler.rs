@@ -5,7 +5,7 @@ use byteorder::WriteBytesExt;
 use multimap::MultiMap;
 use std::io;
 
-#[derive(Debug)]
+#[derive(Clone, Copy, Debug)]
 pub enum Reg {
     R0,
     R1,
@@ -15,22 +15,6 @@ pub enum Reg {
     R5,
     R6,
     R7,
-}
-
-impl Reg {
-    #[inline]
-    fn code(&self) -> u16 {
-        match self {
-            Reg::R0 => 0,
-            Reg::R1 => 1,
-            Reg::R2 => 2,
-            Reg::R3 => 3,
-            Reg::R4 => 4,
-            Reg::R5 => 5,
-            Reg::R6 => 6,
-            Reg::R7 => 7,
-        }
-    }
 }
 
 #[derive(Debug)]
@@ -191,19 +175,19 @@ impl Program {
             };
             match inst {
                 Add1(dst, src1, src2) => {
-                    let (d, s, a) = (dst.code(), src1.code(), src2.code());
+                    let (d, s, a) = (*dst as u16, *src1 as u16, *src2 as u16);
                     words.push(bitpack!("0001_dddsss000aaa"));
                 }
                 Add2(dst, src, imm) => {
-                    let (d, s, i) = (dst.code(), src.code(), *imm as u16);
+                    let (d, s, i) = (*dst as u16, *src as u16, *imm as u16);
                     words.push(bitpack!("0001_dddsss1iiiii"));
                 }
                 And1(dst, src1, src2) => {
-                    let (d, s, a) = (dst.code(), src1.code(), src2.code());
+                    let (d, s, a) = (*dst as u16, *src1 as u16, *src2 as u16);
                     words.push(bitpack!("0101_dddsss000aaa"));
                 }
                 And2(dst, src, imm) => {
-                    let (d, s, i) = (dst.code(), src.code(), *imm as u16);
+                    let (d, s, i) = (*dst as u16, *src as u16, *imm as u16);
                     words.push(bitpack!("0101_dddsss1iiiii"));
                 }
                 Blkw(len) => words.extend(vec![0; *len as usize]),
@@ -214,68 +198,53 @@ impl Program {
                 }
                 Fill(v) => words.push(*v),
                 Jmp(base) => {
-                    let b = base.code();
+                    let b = *base as u16;
                     words.push(bitpack!("1100_000bbb000000"));
                 }
                 Jsr(label) => {
-                    let o = self
-                        .calc_offset(words.len(), label, 11)
-                        .unwrap_or_else(|e| {
-                            errors.push((words.len(), e));
-                            0
-                        });
+                    let o = self.calc_offset(pc, label, 11).unwrap_or_else(append_error);
                     words.push(bitpack!("0100_1ooooooooooo"));
                 }
                 Jsrr(base) => {
-                    let b = base.code();
+                    let b = *base as u16;
                     words.push(bitpack!("0100_000bbb000000"));
                 }
                 Ld(dst, label) => {
-                    let d = dst.code();
-                    let o = self
-                        .calc_offset(words.len(), label, 9)
-                        .unwrap_or_else(append_error);
+                    let d = *dst as u16;
+                    let o = self.calc_offset(pc, label, 9).unwrap_or_else(append_error);
                     words.push(bitpack!("0010_dddooooooooo"));
                 }
                 Ldi(dst, label) => {
-                    let d = dst.code();
-                    let o = self
-                        .calc_offset(words.len(), label, 9)
-                        .unwrap_or_else(append_error);
+                    let d = *dst as u16;
+                    let o = self.calc_offset(pc, label, 9).unwrap_or_else(append_error);
                     words.push(bitpack!("1010_dddooooooooo"));
                 }
                 Ldr(dst, base, offset) => {
-                    let (d, b, o) = (dst.code(), base.code(), *offset as u16);
+                    let (d, b, o) = (*dst as u16, *base as u16, *offset as u16);
                     words.push(bitpack!("0110_dddbbboooooo"));
                 }
                 Lea(dst, label) => {
-                    let d = dst.code();
-                    let o = self
-                        .calc_offset(words.len(), label, 9)
-                        .unwrap_or_else(append_error);
+                    let d = *dst as u16;
+                    let o = self.calc_offset(pc, label, 9).unwrap_or_else(append_error);
                     words.push(bitpack!("1110_dddooooooooo"));
                 }
                 Not(dst, src) => {
-                    let (d, s) = (dst.code(), src.code());
+                    let (d, s) = (*dst as u16, *src as u16);
                     words.push(bitpack!("1001_dddsss111111"));
                 }
                 Rti => words.push(bitpack!("0001_000000000000")),
                 St(src, label) => {
-                    let s = src.code();
-                    let o = self
-                        .calc_offset(words.len(), label, 9)
-                        .unwrap_or_else(append_error);
+                    let s = *src as u16;
+                    let o = self.calc_offset(pc, label, 9).unwrap_or_else(append_error);
                     words.push(bitpack!("0011_sssooooooooo"));
                 }
                 Sti(src, label) => {
-                    let s = src.code();
-                    let o = self
-                        .calc_offset(words.len(), label, 9)
-                        .unwrap_or_else(append_error);
+                    let s = *src as u16;
+                    let o = self.calc_offset(pc, label, 9).unwrap_or_else(append_error);
                     words.push(bitpack!("1011_sssooooooooo"));
                 }
                 Str(src, base, offset) => {
-                    let (s, b, o) = (src.code(), base.code(), *offset as u16);
+                    let (s, b, o) = (*src as u16, *base as u16, *offset as u16);
                     words.push(bitpack!("0111_sssbbboooooo"));
                 }
                 Stringz(s) => {

@@ -45,7 +45,7 @@ const FP: Flag = Wrapping(1 << 0);
 const FZ: Flag = Wrapping(1 << 1);
 const FN: Flag = Wrapping(1 << 2);
 
-type TrapVect = u16;
+type TrapVect = u8;
 const TGETC: TrapVect = 0x20;
 const TOUT: TrapVect = 0x21;
 const TPUTS: TrapVect = 0x22;
@@ -131,7 +131,7 @@ impl VM {
             "1100???bbb??????" /* JMP  */ => self.jmp(self.r(b)),
             "1101????????????" /* RTI  */ => self.crash("RTI not available in user mode"),
             "1110dddooooooooo" /* LEA  */ => self.dst(d, self.pc() + sext(o, 9)),
-            "1111????tttttttt" /* TRAP */ => self.trap(t),
+            "1111????tttttttt" /* TRAP */ => self.trap(t as u8),
         }
     }
 
