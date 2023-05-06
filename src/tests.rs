@@ -9,7 +9,7 @@ fn multiply_by_six() {
     let mut vm = VM::new();
     vm.ld_asm(
         &asm! {
-                    ORIG 0x3050;
+                    .ORIG 0x3050;
                     LD R1, "six";
                     LD R2, "number";
                     ZERO R3;  // clear R3; will contain product
@@ -19,7 +19,7 @@ fn multiply_by_six() {
                     HALT;
             :number BLKW 1;
             :six    FILL 6;
-                    END;
+                    .END;
         }
         .unwrap(),
     );
@@ -39,12 +39,12 @@ fn max_offset() {
     let mut vm = VM::new();
     vm.ld_asm(
         &asm! {
-                    ORIG 0x4000;
+                    .ORIG 0x4000;
                     LD R1, "lbl";
                     HALT;
                     BLKW 254;
             :lbl    FILL 23;
-                    END;
+                    .END;
         }
         .unwrap(),
     );
@@ -60,7 +60,7 @@ fn arithmetic() {
     let mut vm = VM::new();
     vm.ld_asm(
         &asm! {
-                    ORIG 0x3000;
+                    .ORIG 0x3000;
 
                     // Part 1
                     LEA R3, "data";
@@ -135,7 +135,7 @@ fn arithmetic() {
                     BLKW 0x1e;
                     FILL 9;
                     FILL -13i16 as u16;
-                    END;
+                    .END;
         }
         .unwrap(),
     );
@@ -165,7 +165,7 @@ fn mult() {
     let mut vm = VM::new();
     vm.ld_asm(
         &asm! {
-                    ORIG 0x3000;
+                    .ORIG 0x3000;
                     LEA R3, "in";
                     LEA R4, "out";
                     ZERO R5;
@@ -236,7 +236,7 @@ fn mult() {
             // 0x3039: space for output
             :out    BLKW 5;
 
-                    END;
+                    .END;
         }
         .unwrap(),
     );
@@ -253,7 +253,7 @@ fn div() {
     let mut vm = VM::new();
     vm.ld_asm(
         &asm! {
-                    ORIG 0x3000;
+                    .ORIG 0x3000;
                     LEA R3, "in";
                     LEA R4, "out";
                     ZERO R5;
@@ -321,7 +321,7 @@ fn div() {
             // 0x3036: space for output
             :out    BLKW 15;
 
-                    END;
+                    .END;
         }
         .unwrap(),
     );
@@ -348,7 +348,7 @@ fn fast_mult() {
     let mut vm = VM::new();
     vm.ld_asm(
         &asm! {
-                    ORIG 0x3000;
+                    .ORIG 0x3000;
                     LEA R3, "in";
                     LEA R4, "out";
                     ZERO R5;
@@ -431,7 +431,7 @@ fn fast_mult() {
             // 0x3044: space for output
             :out    BLKW 5;
 
-                    END;
+                    .END;
         }
         .unwrap(),
     );

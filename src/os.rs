@@ -2,15 +2,15 @@ use crate::{asm, assembler::AssemblerError, VM};
 
 pub(super) fn load(vm: &mut VM) -> Result<(), AssemblerError> {
     vm.ld_asm(&asm! {
-        ORIG 0;
+        .ORIG 0;
         BLKW 0x26;
         FILL 0x0215;  // 0x26: digit input
         FILL 0x0239;  // 0x27: digit output
-        END;
+        .END;
     }?);
     // OS trap routines
     vm.ld_asm(&asm! {
-                                ORIG 0x0200;
+                                .ORIG 0x0200;
         // --- Startup code area ---
         // (There is no startup code; jump directly to user code area and start
         // executing there.)
@@ -153,7 +153,7 @@ pub(super) fn load(vm: &mut VM) -> Result<(), AssemblerError> {
         /* 0x0263 */            LDR R3, R4, 1;
         /* 0x0264 */            LDR R4, R4, 0;
         /* 0x0265 */            RET;
-                                END;
+                                .END;
     }?);
     Ok(())
 }
@@ -164,10 +164,10 @@ fn number_input() {
     load(&mut vm).unwrap();
     vm.ld_asm(
         &asm! {
-            ORIG 0x3000;
+            .ORIG 0x3000;
             TRAP 0x26;
             HALT;
-            END;
+            .END;
         }
         .unwrap(),
     );
@@ -212,10 +212,10 @@ fn number_output() {
     load(&mut vm).unwrap();
     vm.ld_asm(
         &asm! {
-            ORIG 0x3000;
+            .ORIG 0x3000;
             TRAP 0x27;
             HALT;
-            END;
+            .END;
         }
         .unwrap(),
     );
@@ -246,11 +246,11 @@ fn register_save() {
     load(&mut vm).unwrap();
     vm.ld_asm(
         &asm! {
-            ORIG 0x3000;
+            .ORIG 0x3000;
             TRAP 0x26;
             TRAP 0x27;
             HALT;
-            END;
+            .END;
         }
         .unwrap(),
     );

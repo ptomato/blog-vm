@@ -5,18 +5,18 @@ mod assembler;
 
 fn main() -> anyhow::Result<()> {
     asm! {
-                ORIG 0x3000;
+                .ORIG 0x3000;
                 LEA R0, "hello";  // load address of string
                 PUTS;             // output string to console
                 HALT;
         :hello  STRINGZ "Hello World!\n";
-                END;
+                .END;
     }?
     .write_img("hello.obj")?;
 
     // Same thing but packed with two characters per word
     asm! {
-                ORIG 0x3000;
+                .ORIG 0x3000;
                 LEA R0, "hello";
                 PUTSP;
                 HALT;
@@ -28,19 +28,19 @@ fn main() -> anyhow::Result<()> {
                 FILL 0x2164;
                 FILL 0x000a;
                 NOP;
-                END;
+                .END;
     }?
     .write_img("hello2.obj")?;
 
     asm! {
-        ORIG 0x3000;
+        .ORIG 0x3000;
         TRAP 0x26;       // read a u16 from stdin and put it in R0
         MOV R1, R0;
         TRAP 0x26;       // read a u16 from stdin and put it in R0
         ADD R0, R1, R0;  // add contents of R1 to R0
         TRAP 0x27;       // show the contents of R0 on stdout
         HALT;
-        END;
+        .END;
     }?
     .write_img("sum.obj")?;
 
@@ -48,7 +48,7 @@ fn main() -> anyhow::Result<()> {
         // Our goal is to take the ten numbers which are stored in memory
         // locations 0x300b through 0x3014, and add them together, leaving the
         // result in register 0 so we can print it out.
-                             ORIG 0x3000;
+                             .ORIG 0x3000;
         /* 0x3000 */         ZERO R0;        // clear R0, to be used for the running sum
         /* 0x3001 */         ZERO R4;        // clear R4, to be used as a counter
         /* 0x3002 */         ADD R4, R4, 10; // load R4 with 10, the number of times to add
@@ -71,6 +71,7 @@ fn main() -> anyhow::Result<()> {
         /* 0x3012 */         FILL 0x0001; // +1 = 13
         /* 0x3013 */         FILL 0x0002; // +2 = 15
         /* 0x3014 */         FILL 0x0001; // +1 = 16
+                             .END;
     }?
     .write_img("array.obj")?;
 

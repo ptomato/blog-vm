@@ -84,67 +84,65 @@ pub struct Program {
 // https://people.cs.georgetown.edu/~squier/Teaching/HardwareFundamentals/LC3-trunk/src/lc3pre_Language_Extensions.txt
 #[macro_export]
 macro_rules! asm {
-    (@inst ADD $dst:expr, $src:expr, $imm:literal)  => { Some(Add2($dst, $src, $imm)) };
-    (@inst ADD $dst:expr, $src1:expr, $src2:expr)   => { Some(Add1($dst, $src1, $src2)) };
-    (@inst AND $dst:expr, $src:expr, $imm:literal)  => { Some(And2($dst, $src, $imm)) };
-    (@inst AND $dst:expr, $src1:expr, $src2:expr)   => { Some(And1($dst, $src1, $src2)) };
-    (@inst BLKW $len:expr)                          => { Some(Blkw($len)) };
-    (@inst BR $lbl:literal)                         => { Some(Br(true, true, true, $lbl)) };
-    (@inst BRn $lbl:literal)                        => { Some(Br(true, false, false, $lbl)) };
-    (@inst BRnp $lbl:literal)                       => { Some(Br(true, false, true, $lbl)) };
-    (@inst BRnz $lbl:literal)                       => { Some(Br(true, true, false, $lbl)) };
-    (@inst BRnzp $lbl:literal)                      => { Some(Br(true, true, true, $lbl)) };
-    (@inst BRp $lbl:literal)                        => { Some(Br(false, false, true, $lbl)) };
-    (@inst BRz $lbl:literal)                        => { Some(Br(false, true, false, $lbl)) };
-    (@inst BRzp $lbl:literal)                       => { Some(Br(false, true, true, $lbl)) };
-    (@inst DEC $dst:expr)                           => { Some(Add2($dst, $dst, -1)) };
-    (@inst FILL $data:expr)                         => { Some(Fill($data)) };
-    (@inst GETC)                                    => { Some(Trap(0x20)) };
-    (@inst END)                                     => { None };
-    (@inst HALT)                                    => { Some(Trap(0x25)) };
-    (@inst IN)                                      => { Some(Trap(0x23)) };
-    (@inst INC $dst:expr)                           => { Some(Add2($dst, $dst, 1)) };
-    (@inst JMP $base:expr)                          => { Some(Jmp($base)) };
-    (@inst JSR $lbl:literal)                        => { Some(Jsr($lbl)) };
-    (@inst LD $dst:expr, $lbl:literal)              => { Some(Ld($dst, $lbl)) };
-    (@inst LDI $dst:expr, $lbl:literal)             => { Some(Ldi($dst, $lbl)) };
-    (@inst LDR $dst:expr, $base:expr, $offset:expr) => { Some(Ldr($dst, $base, $offset)) };
-    (@inst LEA $dst:expr, $lbl:literal)             => { Some(Lea($dst, $lbl)) };
-    (@inst MOV $dst:expr, $src:expr)                => { Some(Add2($dst, $src, 0)) };
-    (@inst NOP)                                     => { Some(Fill(0)) };
-    (@inst NOT $dst:expr, $src:expr)                => { Some(Not($dst, $src)) };
-    (@inst ORIG $orig:literal)                      => { None };
-    (@inst OUT)                                     => { Some(Trap(0x21)) };
-    (@inst PUTS)                                    => { Some(Trap(0x22)) };
-    (@inst PUTSP)                                   => { Some(Trap(0x24)) };
-    (@inst RET)                                     => { Some(Jmp(R7)) };
-    (@inst RTI)                                     => { Some(Rti) };
-    (@inst ST $src:expr, $lbl:literal)              => { Some(St($src, $lbl)) };
-    (@inst STI $src:expr, $lbl:literal)             => { Some(Sti($src, $lbl)) };
-    (@inst STR $src:expr, $base:expr, $offset:expr) => { Some(Str($src, $base, $offset)) };
-    (@inst STRINGZ $str:literal)                    => { Some(Stringz($str)) };
-    (@inst TRAP $vect:expr)                         => { Some(Trap($vect)) };
-    (@inst ZERO $dst:expr)                          => { Some(And2($dst, $dst, 0)) };
+    (@inst ADD $dst:expr, $src:expr, $imm:literal)  => { Add2($dst, $src, $imm) };
+    (@inst ADD $dst:expr, $src1:expr, $src2:expr)   => { Add1($dst, $src1, $src2) };
+    (@inst AND $dst:expr, $src:expr, $imm:literal)  => { And2($dst, $src, $imm) };
+    (@inst AND $dst:expr, $src1:expr, $src2:expr)   => { And1($dst, $src1, $src2) };
+    (@inst BLKW $len:expr)                          => { Blkw($len) };
+    (@inst BR $lbl:literal)                         => { Br(true, true, true, $lbl) };
+    (@inst BRn $lbl:literal)                        => { Br(true, false, false, $lbl) };
+    (@inst BRnp $lbl:literal)                       => { Br(true, false, true, $lbl) };
+    (@inst BRnz $lbl:literal)                       => { Br(true, true, false, $lbl) };
+    (@inst BRnzp $lbl:literal)                      => { Br(true, true, true, $lbl) };
+    (@inst BRp $lbl:literal)                        => { Br(false, false, true, $lbl) };
+    (@inst BRz $lbl:literal)                        => { Br(false, true, false, $lbl) };
+    (@inst BRzp $lbl:literal)                       => { Br(false, true, true, $lbl) };
+    (@inst DEC $dst:expr)                           => { Add2($dst, $dst, -1) };
+    (@inst FILL $data:expr)                         => { Fill($data) };
+    (@inst GETC)                                    => { Trap(0x20) };
+    (@inst HALT)                                    => { Trap(0x25) };
+    (@inst IN)                                      => { Trap(0x23) };
+    (@inst INC $dst:expr)                           => { Add2($dst, $dst, 1) };
+    (@inst JMP $base:expr)                          => { Jmp($base) };
+    (@inst JSR $lbl:literal)                        => { Jsr($lbl) };
+    (@inst LD $dst:expr, $lbl:literal)              => { Ld($dst, $lbl) };
+    (@inst LDI $dst:expr, $lbl:literal)             => { Ldi($dst, $lbl) };
+    (@inst LDR $dst:expr, $base:expr, $offset:expr) => { Ldr($dst, $base, $offset) };
+    (@inst LEA $dst:expr, $lbl:literal)             => { Lea($dst, $lbl) };
+    (@inst MOV $dst:expr, $src:expr)                => { Add2($dst, $src, 0) };
+    (@inst NOP)                                     => { Fill(0) };
+    (@inst NOT $dst:expr, $src:expr)                => { Not($dst, $src) };
+    (@inst OUT)                                     => { Trap(0x21) };
+    (@inst PUTS)                                    => { Trap(0x22) };
+    (@inst PUTSP)                                   => { Trap(0x24) };
+    (@inst RET)                                     => { Jmp(R7) };
+    (@inst RTI)                                     => { Rti };
+    (@inst ST $src:expr, $lbl:literal)              => { St($src, $lbl) };
+    (@inst STI $src:expr, $lbl:literal)             => { Sti($src, $lbl) };
+    (@inst STR $src:expr, $base:expr, $offset:expr) => { Str($src, $base, $offset) };
+    (@inst STRINGZ $str:literal)                    => { Stringz($str) };
+    (@inst TRAP $vect:expr)                         => { Trap($vect) };
+    (@inst ZERO $dst:expr)                          => { And2($dst, $dst, 0) };
 
-    (@orig ORIG $orig:literal)     => { Some($orig) };
-    (@orig $op:ident $($t:expr),*) => { None };
-
-    ($($(:$lbl:ident)? $op:ident $($t:expr),*;)+) => {{
+    (
+        .ORIG $orig:literal;
+        $($(:$lbl:ident)? $op:ident $($t:expr),*;)+
+        .END;
+    ) => {{
         #[allow(unused_imports)]
         use $crate::assembler::{Inst::*, Program, Reg::*, SymbolTable};
         let mut code = Vec::new();
         #[allow(unused_mut)]
         let mut symtab: SymbolTable = Default::default();
-        let mut origin: u16 = 0;
+        let origin: u16 = $orig;
         $(
-            asm! {@orig $op $($t),*}.map(|orig| origin = orig);
             $(
                 symtab.insert(
                     stringify!($lbl),
                     origin + code.iter().map(|i| i.word_len()).sum::<u16>(),
                 );
             )*
-            asm! {@inst $op $($t),*}.map(|inst| code.push(inst));
+            code.push(asm! {@inst $op $($t),*});
         )*
         Program::assemble(origin, &code, &symtab)
     }};
@@ -318,19 +316,19 @@ impl Program {
 
 #[test]
 fn origin() {
-    let program = asm! { ORIG 0x1234; END; }.unwrap();
+    let program = asm! { .ORIG 0x1234; NOP; .END; }.unwrap();
     assert_eq!(program.origin(), 0x1234);
 }
 
 #[test]
 fn invalid_offset() {
     asm! {
-                ORIG 0x4000;
+                .ORIG 0x4000;
                 LD R1, "lbl";
                 HALT;
                 BLKW 255;
         :lbl    FILL 23;
-                END;
+                .END;
     }
     .unwrap_err();
 }
@@ -338,9 +336,9 @@ fn invalid_offset() {
 #[test]
 fn invalid_label() {
     asm! {
-        ORIG 0x3000;
+        .ORIG 0x3000;
         JSR "i don't exist";
-        END;
+        .END;
     }
     .unwrap_err();
 }
@@ -348,13 +346,13 @@ fn invalid_label() {
 #[test]
 fn duplicate_label() {
     asm! {
-                ORIG 0x3000;
+                .ORIG 0x3000;
                 LD R0, "data";
                 OUT;
                 HALT;
         :data   FILL 0x30;
         :data   FILL 0x31;
-                END;
+                .END;
     }
     .unwrap_err();
 }
