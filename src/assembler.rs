@@ -43,6 +43,16 @@ pub enum Inst {
     Trap(u8),
 }
 
+impl Inst {
+    pub fn word_len(&self) -> u16 {
+        match *self {
+            Inst::Blkw(len) => len,
+            Inst::Stringz(s) => u16::try_from(s.len()).unwrap(),
+            _ => 1,
+        }
+    }
+}
+
 pub type SymbolTable = MultiMap<&'static str, u16>;
 
 #[derive(Debug)]
@@ -103,28 +113,22 @@ macro_rules! asm {
     (@orig ORIG $orig:literal)     => { Some($orig) };
     (@orig $op:ident $($t:expr),*) => { None };
 
-    (@inc BLKW $len:expr)         => { Some($len) };
-    (@inc END $len:literal)       => { None };
-    (@inc ORIG $orig:literal)     => { None };
-    (@inc STRINGZ $str:literal)   => { Some($str.len() as u16) };
-    (@inc $op:ident $($t:expr),*) => { Some(1) };
-
     ($($($lbl:literal:)? $op:ident $($t:expr),*;)+) => {{
         #[allow(unused_imports)]
         use $crate::assembler::{Inst::*, Program, Reg::*, SymbolTable};
         let mut code = Vec::new();
         #[allow(unused_mut)]
         let mut symtab: SymbolTable = Default::default();
-        let mut pc: u16 = 0;
         let mut origin: u16 = 0;
         $(
-            asm! {@orig $op $($t),*}.map(|orig| {
-                origin = orig;
-                pc = orig;
-            });
-            $(symtab.insert($lbl, pc);)*
+            asm! {@orig $op $($t),*}.map(|orig| origin = orig);
+            $(
+                symtab.insert(
+                    $lbl,
+                    origin + code.iter().map(|i| i.word_len()).sum::<u16>(),
+                );
+            )*
             asm! {@inst $op $($t),*}.map(|inst| code.push(inst));
-            asm! {@inc $op $($t),*}.map(|inc: u16| pc += inc);
         )*
         Program::from_asm(origin, code, symtab)
     }};
