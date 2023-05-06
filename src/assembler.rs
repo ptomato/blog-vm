@@ -109,7 +109,7 @@ macro_rules! asm {
 
     ($($($lbl:literal:)* $op:ident $($t:expr),*;)*) => {{
         #[allow(unused_imports)]
-        use crate::assembler::{Inst::*, Program, Reg::*};
+        use $crate::assembler::{Inst::*, Program, Reg::*};
         let mut code = Vec::new();
         #[allow(unused_mut)]
         let mut symtab: multimap::MultiMap<&str, u16> = Default::default();
