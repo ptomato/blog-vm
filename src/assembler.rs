@@ -43,11 +43,13 @@ pub enum Inst {
     Trap(u8),
 }
 
+pub type SymbolTable = MultiMap<&'static str, u16>;
+
 #[derive(Debug)]
 pub struct Program {
     origin: u16,
     code: Vec<Inst>,
-    symtab: MultiMap<&'static str, u16>,
+    symtab: SymbolTable,
 }
 
 // MOV, ZERO, INC, DEC, RET provided as convenience instructions.
@@ -109,10 +111,10 @@ macro_rules! asm {
 
     ($($($lbl:literal:)* $op:ident $($t:expr),*;)*) => {{
         #[allow(unused_imports)]
-        use $crate::assembler::{Inst::*, Program, Reg::*};
+        use $crate::assembler::{Inst::*, Program, Reg::*, SymbolTable};
         let mut code = Vec::new();
         #[allow(unused_mut)]
-        let mut symtab: multimap::MultiMap<&str, u16> = Default::default();
+        let mut symtab: SymbolTable = Default::default();
         let mut pc: u16 = 0;
         let mut origin: u16 = 0;
         $(
