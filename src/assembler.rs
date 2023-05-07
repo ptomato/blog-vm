@@ -3,7 +3,7 @@
 use bitmatch::bitmatch;
 use byteorder::WriteBytesExt;
 use multimap::MultiMap;
-use std::io;
+use std::{error, fmt, io};
 
 #[derive(Clone, Copy, Debug)]
 pub enum Reg {
@@ -55,11 +55,27 @@ impl Inst {
 
 pub type SymbolTable = MultiMap<&'static str, u16>;
 
+#[derive(Debug, Clone)]
+pub struct AssemblerError {
+    errors: Vec<(usize, String)>,
+}
+
+impl fmt::Display for AssemblerError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        writeln!(f, "Error assembling program")?;
+        for (pc, message) in &self.errors {
+            writeln!(f, "  x{:04x}: {}", pc, message)?;
+        }
+        Ok(())
+    }
+}
+
+impl error::Error for AssemblerError {}
+
 #[derive(Debug)]
 pub struct Program {
     origin: u16,
-    code: Vec<Inst>,
-    symtab: SymbolTable,
+    bytecode: Vec<u16>,
 }
 
 // MOV, ZERO, INC, DEC, RET provided as convenience instructions.
@@ -130,26 +146,24 @@ macro_rules! asm {
             )*
             asm! {@inst $op $($t),*}.map(|inst| code.push(inst));
         )*
-        Program::from_asm(origin, code, symtab)
+        Program::assemble(origin, &code, &symtab)
     }};
 }
 
 impl Program {
-    pub fn from_asm(origin: u16, code: Vec<Inst>, symtab: MultiMap<&'static str, u16>) -> Self {
-        Self {
-            origin,
-            code,
-            symtab,
-        }
-    }
-
-    fn calc_offset(&self, pc: usize, label: &'static str, bits: usize) -> Result<u16, String> {
-        if let Some(v) = self.symtab.get_vec(label) {
+    fn calc_offset(
+        origin: u16,
+        symtab: &SymbolTable,
+        pc: usize,
+        label: &'static str,
+        bits: usize,
+    ) -> Result<u16, String> {
+        if let Some(v) = symtab.get_vec(label) {
             if v.len() != 1 {
                 return Err(format!("Duplicate label \"{}\"", label));
             }
             let addr = v[0];
-            let offset = addr as i32 - self.origin as i32 - pc as i32 - 1;
+            let offset = addr as i32 - origin as i32 - pc as i32 - 1;
             let shift = 32 - bits;
             if offset << shift >> shift != offset {
                 Err(format!(
@@ -168,12 +182,20 @@ impl Program {
         self.origin as usize
     }
 
+    pub fn bytecode(&self) -> &Vec<u16> {
+        &self.bytecode
+    }
+
     #[bitmatch]
-    pub fn assemble(&self) -> (Vec<u16>, Vec<(usize, String)>) {
+    pub fn assemble(
+        origin: u16,
+        code: &Vec<Inst>,
+        symtab: &SymbolTable,
+    ) -> Result<Self, AssemblerError> {
         use Inst::*;
         let mut words = Vec::new();
         let mut errors = Vec::new();
-        for inst in &self.code {
+        for inst in code {
             let pc = words.len();
             let append_error = |e| {
                 errors.push((pc, e));
@@ -199,7 +221,8 @@ impl Program {
                 Blkw(len) => words.extend(vec![0; *len as usize]),
                 Br(n, z, p, label) => {
                     let (n, z, p) = (*n as u16, *z as u16, *p as u16);
-                    let o = self.calc_offset(pc, label, 9).unwrap_or_else(append_error);
+                    let o = Self::calc_offset(origin, symtab, pc, label, 9)
+                        .unwrap_or_else(append_error);
                     words.push(bitpack!("0000_nzpooooooooo"));
                 }
                 Fill(v) => words.push(*v),
@@ -208,7 +231,8 @@ impl Program {
                     words.push(bitpack!("1100_000bbb000000"));
                 }
                 Jsr(label) => {
-                    let o = self.calc_offset(pc, label, 11).unwrap_or_else(append_error);
+                    let o = Self::calc_offset(origin, symtab, pc, label, 11)
+                        .unwrap_or_else(append_error);
                     words.push(bitpack!("0100_1ooooooooooo"));
                 }
                 Jsrr(base) => {
@@ -217,12 +241,14 @@ impl Program {
                 }
                 Ld(dst, label) => {
                     let d = *dst as u16;
-                    let o = self.calc_offset(pc, label, 9).unwrap_or_else(append_error);
+                    let o = Self::calc_offset(origin, symtab, pc, label, 9)
+                        .unwrap_or_else(append_error);
                     words.push(bitpack!("0010_dddooooooooo"));
                 }
                 Ldi(dst, label) => {
                     let d = *dst as u16;
-                    let o = self.calc_offset(pc, label, 9).unwrap_or_else(append_error);
+                    let o = Self::calc_offset(origin, symtab, pc, label, 9)
+                        .unwrap_or_else(append_error);
                     words.push(bitpack!("1010_dddooooooooo"));
                 }
                 Ldr(dst, base, offset) => {
@@ -231,7 +257,8 @@ impl Program {
                 }
                 Lea(dst, label) => {
                     let d = *dst as u16;
-                    let o = self.calc_offset(pc, label, 9).unwrap_or_else(append_error);
+                    let o = Self::calc_offset(origin, symtab, pc, label, 9)
+                        .unwrap_or_else(append_error);
                     words.push(bitpack!("1110_dddooooooooo"));
                 }
                 Not(dst, src) => {
@@ -241,12 +268,14 @@ impl Program {
                 Rti => words.push(bitpack!("0001_000000000000")),
                 St(src, label) => {
                     let s = *src as u16;
-                    let o = self.calc_offset(pc, label, 9).unwrap_or_else(append_error);
+                    let o = Self::calc_offset(origin, symtab, pc, label, 9)
+                        .unwrap_or_else(append_error);
                     words.push(bitpack!("0011_sssooooooooo"));
                 }
                 Sti(src, label) => {
                     let s = *src as u16;
-                    let o = self.calc_offset(pc, label, 9).unwrap_or_else(append_error);
+                    let o = Self::calc_offset(origin, symtab, pc, label, 9)
+                        .unwrap_or_else(append_error);
                     words.push(bitpack!("1011_sssooooooooo"));
                 }
                 Str(src, base, offset) => {
@@ -263,23 +292,20 @@ impl Program {
                 }
             }
         }
-        (words, errors)
+        if errors.is_empty() {
+            Ok(Self {
+                origin,
+                bytecode: words,
+            })
+        } else {
+            Err(AssemblerError { errors })
+        }
     }
 
     pub fn write_buf(&self, out: &mut impl WriteBytesExt) -> io::Result<()> {
         out.write_u16::<byteorder::NetworkEndian>(self.origin)?;
-        let (words, errors) = self.assemble();
-        if !errors.is_empty() {
-            for (pc, e) in &errors {
-                eprintln!("{:04x}: {}", pc, e);
-            }
-            return Err(io::Error::new(
-                io::ErrorKind::Other,
-                format!("{:?}", errors),
-            ));
-        }
-        for inst in words {
-            out.write_u16::<byteorder::NetworkEndian>(inst)?;
+        for inst in &self.bytecode {
+            out.write_u16::<byteorder::NetworkEndian>(*inst)?;
         }
         Ok(())
     }
@@ -292,13 +318,12 @@ impl Program {
 
 #[test]
 fn origin() {
-    let program = asm! { ORIG 0x1234; END; };
+    let program = asm! { ORIG 0x1234; END; }.unwrap();
     assert_eq!(program.origin(), 0x1234);
 }
 
 #[test]
 fn invalid_offset() {
-    let mut buf = vec![];
     asm! {
                 ORIG 0x4000;
                 LD R1, "lbl";
@@ -307,25 +332,21 @@ fn invalid_offset() {
         "lbl":  FILL 23;
                 END;
     }
-    .write_buf(&mut buf)
     .unwrap_err();
 }
 
 #[test]
 fn invalid_label() {
-    let mut buf = vec![];
     asm! {
         ORIG 0x3000;
         JSR "i don't exist";
         END;
     }
-    .write_buf(&mut buf)
     .unwrap_err();
 }
 
 #[test]
 fn duplicate_label() {
-    let mut buf = vec![];
     asm! {
         ORIG 0x3000;
         LD R0, "data";
@@ -335,6 +356,5 @@ fn duplicate_label() {
         "data": FILL 0x31;
         END;
     }
-    .write_buf(&mut buf)
     .unwrap_err();
 }

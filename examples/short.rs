@@ -3,7 +3,7 @@ mod assembler;
 
 // Short LC3 assembly examples
 
-fn main() -> Result<(), std::io::Error> {
+fn main() -> anyhow::Result<()> {
     asm! {
                  ORIG 0x3000;
                  LEA R0, "hello";  // load address of string
@@ -11,7 +11,7 @@ fn main() -> Result<(), std::io::Error> {
                  HALT;
         "hello": STRINGZ "Hello World!\n";
                  END;
-    }
+    }?
     .write_img("hello.obj")?;
 
     // Same thing but packed with two characters per word
@@ -29,7 +29,7 @@ fn main() -> Result<(), std::io::Error> {
                 FILL 0x000a;
                 NOP;
                 END;
-    }
+    }?
     .write_img("hello2.obj")?;
 
     asm! {
@@ -41,7 +41,7 @@ fn main() -> Result<(), std::io::Error> {
         TRAP 0x27;       // show the contents of R0 on stdout
         HALT;
         END;
-    }
+    }?
     .write_img("sum.obj")?;
 
     asm! {
@@ -71,6 +71,8 @@ fn main() -> Result<(), std::io::Error> {
         /* 0x3012 */         FILL 0x0001; // +1 = 13
         /* 0x3013 */         FILL 0x0002; // +2 = 15
         /* 0x3014 */         FILL 0x0001; // +1 = 16
-    }
-    .write_img("array.obj")
+    }?
+    .write_img("array.obj")?;
+
+    Ok(())
 }

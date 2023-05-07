@@ -1,15 +1,13 @@
-use std::io;
+use crate::{asm, assembler::AssemblerError, VM};
 
-use crate::{asm, VM};
-
-pub(super) fn load(vm: &mut VM) -> io::Result<()> {
+pub(super) fn load(vm: &mut VM) -> Result<(), AssemblerError> {
     vm.ld_asm(&asm! {
         ORIG 0;
         BLKW 0x26;
         FILL 0x0215;  // 0x26: digit input
         FILL 0x0239;  // 0x27: digit output
         END;
-    })?;
+    }?);
     // OS trap routines
     vm.ld_asm(&asm! {
                                 ORIG 0x0200;
@@ -156,20 +154,23 @@ pub(super) fn load(vm: &mut VM) -> io::Result<()> {
         /* 0x0264 */            LDR R4, R4, 0;
         /* 0x0265 */            RET;
                                 END;
-    })
+    }?);
+    Ok(())
 }
 
 #[test]
 fn number_input() {
     let mut vm = VM::new();
     load(&mut vm).unwrap();
-    vm.ld_asm(&asm! {
-                  ORIG 0x3000;
-                  TRAP 0x26;
-                  HALT;
-                  END;
-    })
-    .unwrap();
+    vm.ld_asm(
+        &asm! {
+            ORIG 0x3000;
+            TRAP 0x26;
+            HALT;
+            END;
+        }
+        .unwrap(),
+    );
 
     fn test_number_input(vm: &mut VM, inp: &str, expected: u16) {
         vm.inbuf = String::from(inp);
@@ -209,13 +210,15 @@ fn number_input() {
 fn number_output() {
     let mut vm = VM::new();
     load(&mut vm).unwrap();
-    vm.ld_asm(&asm! {
-                  ORIG 0x3000;
-                  TRAP 0x27;
-                  HALT;
-                  END;
-    })
-    .unwrap();
+    vm.ld_asm(
+        &asm! {
+            ORIG 0x3000;
+            TRAP 0x27;
+            HALT;
+            END;
+        }
+        .unwrap(),
+    );
 
     fn test_number_output(vm: &mut VM, inp: u16, expected: &str) {
         vm.rw(0, std::num::Wrapping(inp));
@@ -241,14 +244,16 @@ fn register_save() {
     // routines.
     let mut vm = VM::new();
     load(&mut vm).unwrap();
-    vm.ld_asm(&asm! {
-        ORIG 0x3000;
-        TRAP 0x26;
-        TRAP 0x27;
-        HALT;
-        END;
-    })
-    .unwrap();
+    vm.ld_asm(
+        &asm! {
+            ORIG 0x3000;
+            TRAP 0x26;
+            TRAP 0x27;
+            HALT;
+            END;
+        }
+        .unwrap(),
+    );
     vm.inbuf = String::from("1234\n");
     // Store values in registers before starting
     for val in 1..=6 {

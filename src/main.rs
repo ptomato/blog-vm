@@ -242,7 +242,7 @@ impl VM {
         }
     }
 
-    pub fn start(&mut self) -> io::Result<()> {
+    pub fn start(&mut self) -> anyhow::Result<()> {
         #[cfg(test)]
         self.outbuf.clear();
         self.jmp(PC_START);
@@ -257,29 +257,23 @@ impl VM {
         Ok(())
     }
 
-    pub fn ld_asm(&mut self, asm: &assembler::Program) -> io::Result<()> {
+    pub fn ld_asm(&mut self, asm: &assembler::Program) {
         let mut addr = asm.origin();
-        let (words, errors) = asm.assemble();
-        if !errors.is_empty() {
-            return Err(io::Error::new(
-                io::ErrorKind::Other,
-                format!("{:?}", errors),
-            ));
-        }
-        for inst in words {
-            self.mem[addr] = Wrapping(inst);
+        for inst in asm.bytecode() {
+            self.mem[addr] = Wrapping(*inst);
             addr += 1;
         }
-        Ok(())
     }
 
-    pub fn ld_img(&mut self, fname: &str) -> io::Result<()> {
+    pub fn ld_img(&mut self, fname: &str) -> anyhow::Result<()> {
         let mut file = fs::File::open(fname)?;
         let offset = file.read_u16::<byteorder::NetworkEndian>()? as usize;
         let nwords = file.metadata()?.len() as usize / 2 - 1;
-        file.read_u16_into::<byteorder::NetworkEndian>(bytemuck::cast_slice_mut(
-            &mut self.mem[offset..(offset + nwords)],
-        ))
+        Ok(
+            file.read_u16_into::<byteorder::NetworkEndian>(bytemuck::cast_slice_mut(
+                &mut self.mem[offset..(offset + nwords)],
+            ))?,
+        )
     }
 }
 
@@ -328,7 +322,7 @@ impl Write for VM {
     }
 }
 
-fn main() -> io::Result<()> {
+fn main() -> anyhow::Result<()> {
     let arg = env::args()
         .nth(1)
         .unwrap_or_else(|| panic!("Requires one argument: file to load"));
