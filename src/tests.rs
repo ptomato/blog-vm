@@ -9,17 +9,17 @@ fn multiply_by_six() {
     let mut vm = VM::new();
     vm.ld_asm(
         &asm! {
-                      ORIG 0x3050;
-                      LD R1, "six";
-                      LD R2, "number";
-                      ZERO R3;  // clear R3; will contain product
-            "again":  ADD R3, R3, R2;
-                      DEC R1;
-                      BRp "again";
-                      HALT;
-            "number": BLKW 1;
-            "six":    FILL 6;
-                      END;
+                    ORIG 0x3050;
+                    LD R1, "six";
+                    LD R2, "number";
+                    ZERO R3;  // clear R3; will contain product
+            :again  ADD R3, R3, R2;
+                    DEC R1;
+                    BRp "again";
+                    HALT;
+            :number BLKW 1;
+            :six    FILL 6;
+                    END;
         }
         .unwrap(),
     );
@@ -43,7 +43,7 @@ fn max_offset() {
                     LD R1, "lbl";
                     HALT;
                     BLKW 254;
-            "lbl":  FILL 23;
+            :lbl    FILL 23;
                     END;
         }
         .unwrap(),
@@ -103,13 +103,13 @@ fn arithmetic() {
                     BRzp "xpos";
                     NOT R4, R4;
                     INC R4;
-            "xpos": STI R4, "absx";  // abs(x)
+            :xpos   STI R4, "absx";  // abs(x)
 
                     MOV R5, R2;
                     BRzp "ypos";
                     NOT R5, R5;
                     INC R5;
-            "ypos": STI R5, "absy";  // abs(y)
+            :ypos   STI R5, "absy";  // abs(y)
 
                     ZERO R6;
                     NOT R5, R5;
@@ -119,18 +119,18 @@ fn arithmetic() {
                     BRn "neg";
                     INC R6;
                     BR "eq";
-            "neg":  ADD R6, R6, 2;
-            "eq":   STI R6, "comp";
+            :neg    ADD R6, R6, 2;
+            :eq     STI R6, "comp";
 
                     HALT;
-            "x":    FILL 0x3120;
-            "y":    FILL 0x3121;
-            "diff": FILL 0x3122;
-            "absx": FILL 0x3123;
-            "absy": FILL 0x3124;
-            "comp": FILL 0x3125;
+            :x      FILL 0x3120;
+            :y      FILL 0x3121;
+            :diff   FILL 0x3122;
+            :absx   FILL 0x3123;
+            :absy   FILL 0x3124;
+            :comp   FILL 0x3125;
                     BLKW 0x100 - 53;
-            "data": FILL 9;
+            :data   FILL 9;
                     FILL -13i16 as u16;
                     BLKW 0x1e;
                     FILL 9;
@@ -170,7 +170,7 @@ fn mult() {
                     LEA R4, "out";
                     ZERO R5;
                     ADD R5, R5, 5;
-            "next": LDR R0, R3, 0;
+            :next   LDR R0, R3, 0;
                     LDR R1, R3, 1;
                     JSR "mult";
                     STR R2, R4, 0;
@@ -185,7 +185,7 @@ fn mult() {
             // R1 - y
             // R2 - product x * y
             // R3 - sign of result
-            "mult": ST R0, "r0";
+            :mult   ST R0, "r0";
                     ST R1, "r1";
                     ST R3, "r3";
                     ZERO R3;
@@ -197,33 +197,33 @@ fn mult() {
                     NOT R3, R3;
                     INC R3;
                     // now x is positive:
-            "xpos": MOV R1, R1;
+            :xpos   MOV R1, R1;
                     BRzp "ypos";
                     NOT R1, R1;
                     INC R1;
                     NOT R3, R3;
                     INC R3;
                     // now y is positive:
-            "ypos": ZERO R2;
+            :ypos   ZERO R2;
                     MOV R1, R1;
-            "loop": BRz "skip";
+            :loop   BRz "skip";
                     ADD R2, R2, R0;
                     DEC R1;
                     BR "loop";
-            "skip": MOV R3, R3;
+            :skip   MOV R3, R3;
                     BRp "done";
                     NOT R2, R2;
                     INC R2;
-            "done": LD R0, "r0";
+            :done   LD R0, "r0";
                     LD R1, "r1";
                     LD R3, "r3";
                     RET;
-            "r0":   BLKW 1;
-            "r1":   BLKW 1;
-            "r3":   BLKW 1;
+            :r0     BLKW 1;
+            :r1     BLKW 1;
+            :r3     BLKW 1;
 
             // 0x302f: input data
-            "in":   FILL 9;
+            :in     FILL 9;
                     FILL 3;
                     FILL 100;
                     FILL 17;
@@ -234,7 +234,7 @@ fn mult() {
                     FILL 12;
                     FILL 0;
             // 0x3039: space for output
-            "out":  BLKW 5;
+            :out    BLKW 5;
 
                     END;
         }
@@ -258,7 +258,7 @@ fn div() {
                     LEA R4, "out";
                     ZERO R5;
                     ADD R5, R5, 5;
-            "next": LDR R0, R3, 0;
+            :next   LDR R0, R3, 0;
                     LDR R1, R3, 1;
                     JSR "div";
                     STR R0, R4, 0;
@@ -277,7 +277,7 @@ fn div() {
             // R3 - x
             // R4 - -y
             // R5 - scratch
-            "div":  ST R3, "r3";  // save registers
+            :div    ST R3, "r3";  // save registers
                     ST R4, "r4";
                     ST R5, "r5";
                     MOV R3, R0;  // copy inputs R0 and R1 to R3 and R4
@@ -295,20 +295,20 @@ fn div() {
                     INC R4;  // R4 now holds -y
                     ADD R5, R1, R4; // test remainder - y
                     BRn "exit";
-            "loop": MOV R1, R5;  // remainder -= y
+            :loop   MOV R1, R5;  // remainder -= y
                     INC R0;  // quotient++
                     ADD R5, R5, R4; // test remainder - y
                     BRzp "loop";
-            "exit": LD R3, "r3";  // restore registers
+            :exit   LD R3, "r3";  // restore registers
                     LD R4, "r4";
                     LD R5, "r5";
                     RET;
-            "r3":   BLKW 1;
-            "r4":   BLKW 1;
-            "r5":   BLKW 1;
+            :r3     BLKW 1;
+            :r4     BLKW 1;
+            :r5     BLKW 1;
 
             // 0x302c: input data
-            "in":   FILL 9;
+            :in     FILL 9;
                     FILL 3;
                     FILL 100;
                     FILL 17;
@@ -319,7 +319,7 @@ fn div() {
                     FILL 12;
                     FILL 0;
             // 0x3036: space for output
-            "out":  BLKW 15;
+            :out    BLKW 15;
 
                     END;
         }
@@ -353,7 +353,7 @@ fn fast_mult() {
                     LEA R4, "out";
                     ZERO R5;
                     ADD R5, R5, 5;
-            "next": LDR R0, R3, 0;
+            :next   LDR R0, R3, 0;
                     LDR R1, R3, 1;
                     JSR "mult";
                     STR R2, R4, 0;
@@ -371,7 +371,7 @@ fn fast_mult() {
             // R4 - bit to test
             // R5 - bit counter
             // R6 - scratch
-            "mult": ST R1, "r1";
+            :mult   ST R1, "r1";
                     ST R3, "r3";
                     ST R4, "r4";
                     ST R5, "r5";
@@ -384,20 +384,20 @@ fn fast_mult() {
                     INC R0;
                     NOT R3, R3;
                     INC R3;
-            "xpos": MOV R1, R1;
+            :xpos   MOV R1, R1;
                     BRzp "ypos";
                     NOT R1, R1;
                     INC R1;
                     NOT R3, R3;
                     INC R3;
-            "ypos": ZERO R2;
+            :ypos   ZERO R2;
                     ZERO R4;
                     INC R4;  // bit = 1
                     ADD R5, R2, 15;  // test 15 bits, excluding sign
-            "loop": AND R6, R0, R4;
+            :loop   AND R6, R0, R4;
                     BRz "shl";
                     ADD R2, R2, R1;
-            "shl":  ADD R1, R1, R1;
+            :shl    ADD R1, R1, R1;
                     ADD R4, R4, R4;
                     DEC R5;
                     BRp "loop";
@@ -405,20 +405,20 @@ fn fast_mult() {
                     BRp "done";
                     NOT R2, R2;
                     INC R2;
-            "done": LD R1, "r1";
+            :done   LD R1, "r1";
                     LD R3, "r3";
                     LD R4, "r4";
                     LD R5, "r5";
                     LD R6, "r6";
                     RET;
-            "r1":   BLKW 1;
-            "r3":   BLKW 1;
-            "r4":   BLKW 1;
-            "r5":   BLKW 1;
-            "r6":   BLKW 1;
+            :r1     BLKW 1;
+            :r3     BLKW 1;
+            :r4     BLKW 1;
+            :r5     BLKW 1;
+            :r6     BLKW 1;
 
             // 0x303a: input data
-            "in":   FILL 9;
+            :in     FILL 9;
                     FILL 3;
                     FILL 100;
                     FILL 17;
@@ -429,7 +429,7 @@ fn fast_mult() {
                     FILL 12;
                     FILL 0;
             // 0x3044: space for output
-            "out":  BLKW 5;
+            :out    BLKW 5;
 
                     END;
         }

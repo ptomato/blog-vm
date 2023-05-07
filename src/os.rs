@@ -16,15 +16,15 @@ pub(super) fn load(vm: &mut VM) -> Result<(), AssemblerError> {
         // executing there.)
         /* 0x0200 */            LD R7, "user";
         /* 0x0201 */            JMP R7;         // jump directly to user code
-        /* 0x0202 */ "user":    FILL 0x3000;    // address of user code
+        /* 0x0202 */ :user      FILL 0x3000;    // address of user code
 
         // --- Data area for trap routines ---
-        /* 0x0203 */ "regsave": BLKW 8;         // space for saving registers
-        /* 0x020b */ "buf":     BLKW 6;         // five digits plus zero terminator
-        /* 0x0211 */ "zero":    FILL 0x30;      // ASCII digit zero
-        /* 0x0212 */ "negzero": FILL -0x30i16 as u16; // ASCII zero but already negated, for subtraction
-        /* 0x0213 */ "minus":   FILL 0x2d;      // ASCII hyphen-minus
-        /* 0x0214 */ "high":    FILL 0x8000;    // high bit constant
+        /* 0x0203 */ :regsave   BLKW 8;         // space for saving registers
+        /* 0x020b */ :buf       BLKW 6;         // five digits plus zero terminator
+        /* 0x0211 */ :zero      FILL 0x30;      // ASCII digit zero
+        /* 0x0212 */ :negzero   FILL -0x30i16 as u16; // ASCII zero but already negated, for subtraction
+        /* 0x0213 */ :minus     FILL 0x2d;      // ASCII hyphen-minus
+        /* 0x0214 */ :high      FILL 0x8000;    // high bit constant
 
         // --- Digit input trap routine (0x26) ---
         // Registers used:
@@ -58,7 +58,7 @@ pub(super) fn load(vm: &mut VM) -> Result<(), AssemblerError> {
         /* 0x021c */            ZERO R1;
         /* 0x021d */            ADD R1, R1, 5;   // R1 = max number of digits remaining
         /* 0x021e */            LD R4, "negzero";
-        /* 0x021f */ "inloop":  GETC;            // store character in R0
+        /* 0x021f */ :inloop    GETC;            // store character in R0
         /* 0x0220 */            ADD R3, R0, -0x0a; // test for newline
         /* 0x0221 */            BRz "indone";    // we are done when a newline is entered
         /* 0x0222 */            MOV R1, R1;
@@ -75,7 +75,7 @@ pub(super) fn load(vm: &mut VM) -> Result<(), AssemblerError> {
         /* 0x022d */            ADD R2, R2, R5;  // add latest digit
         /* 0x022e */            DEC R1;
         /* 0x022f */            BR "inloop";
-        /* 0x0230 */ "indone":  OUT;             // print a final newline
+        /* 0x0230 */ :indone    OUT;             // print a final newline
         /* 0x0231 */            MOV R0, R2;      // R0 is returned to the caller
         /* 0x0232 */            LEA R1, "regsave"; // restore other registers
         /* 0x0233 */            LDR R5, R1, 4;
@@ -119,31 +119,31 @@ pub(super) fn load(vm: &mut VM) -> Result<(), AssemblerError> {
         /* 0x0241 */            LD R0, "zero";
         /* 0x0242 */            OUT;             // ...output zero and skip everything else
         /* 0x0243 */            BR "newline";
-        /* 0x0244 */ "nonzero": LD R3, "high";   // check if total is negative
+        /* 0x0244 */ :nonzero   LD R3, "high";   // check if total is negative
         /* 0x0245 */            AND R3, R1, R3;  // by AND'ing it with the high bit
         /* 0x0246 */            BRz "pos";
         /* 0x0247 */            NOT R1, R1;      // if negative, negate it
         /* 0x0248 */            INC R1;          // (-x == ~x + 1)
         /* 0x0249 */            LD R0, "minus";  // and output a minus sign
         /* 0x024a */            OUT;
-        /* 0x024b */ "pos":     LEA R0, "buf";   // load R0 with our string buffer pointer
+        /* 0x024b */ :pos       LEA R0, "buf";   // load R0 with our string buffer pointer
         /* 0x024c */            ADD R0, R0, 5;   // the string grows backwards, so start one past the end
         /* 0x024d */            LD R4, "zero";   // R4 holds ASCII '0' digit, for convenience in adding
-        /* 0x024e */ "outloop": MOV R2, R1;      // prepare to divide R1 by 10. R2 will hold the remainder
+        /* 0x024e */ :outloop   MOV R2, R1;      // prepare to divide R1 by 10. R2 will hold the remainder
         /* 0x024f */            ZERO R1;         // R1 will hold the quotient
         /* 0x0250 */            ADD R3, R2, -10; // test remainder - divisor
         /* 0x0251 */            BRn "divdone";   // do:
-        /* 0x0252 */ "divloop": MOV R2, R3;      //   remainder -= divisor
+        /* 0x0252 */ :divloop   MOV R2, R3;      //   remainder -= divisor
         /* 0x0253 */            INC R1;          //   quotient++
         /* 0x0254 */            ADD R3, R3, -10; // ... while remainder >= divisor
         /* 0x0255 */            BRzp "divloop";
-        /* 0x0256 */ "divdone": DEC R0;          // move to the place in the buffer where this digit should go
+        /* 0x0256 */ :divdone   DEC R0;          // move to the place in the buffer where this digit should go
         /* 0x0257 */            ADD R2, R2, R4;  // remainder is the value of the digit. add ASCII '0' to it
         /* 0x0258 */            STR R2, R0, 0;   // store in buffer
         /* 0x0259 */            MOV R1, R1;      // if the quotient is not 0, repeat for the next digit
         /* 0x025a */            BRnp "outloop";
         /* 0x025b */            PUTS;            // R0 now points to the beginning of the string to print
-        /* 0x025c */ "newline": ZERO R0;
+        /* 0x025c */ :newline   ZERO R0;
         /* 0x025d */            ADD R0, R0, 0x0a; // print 0x0a (ASCII newline)
         /* 0x025e */            OUT;
         /* 0x025f */            LEA R4, "regsave"; // restore registers

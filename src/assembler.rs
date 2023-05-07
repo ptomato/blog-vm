@@ -129,7 +129,7 @@ macro_rules! asm {
     (@orig ORIG $orig:literal)     => { Some($orig) };
     (@orig $op:ident $($t:expr),*) => { None };
 
-    ($($($lbl:literal:)? $op:ident $($t:expr),*;)+) => {{
+    ($($(:$lbl:ident)? $op:ident $($t:expr),*;)+) => {{
         #[allow(unused_imports)]
         use $crate::assembler::{Inst::*, Program, Reg::*, SymbolTable};
         let mut code = Vec::new();
@@ -140,7 +140,7 @@ macro_rules! asm {
             asm! {@orig $op $($t),*}.map(|orig| origin = orig);
             $(
                 symtab.insert(
-                    $lbl,
+                    stringify!($lbl),
                     origin + code.iter().map(|i| i.word_len()).sum::<u16>(),
                 );
             )*
@@ -329,7 +329,7 @@ fn invalid_offset() {
                 LD R1, "lbl";
                 HALT;
                 BLKW 255;
-        "lbl":  FILL 23;
+        :lbl    FILL 23;
                 END;
     }
     .unwrap_err();
@@ -348,13 +348,13 @@ fn invalid_label() {
 #[test]
 fn duplicate_label() {
     asm! {
-        ORIG 0x3000;
-        LD R0, "data";
-        OUT;
-        HALT;
-        "data": FILL 0x30;
-        "data": FILL 0x31;
-        END;
+                ORIG 0x3000;
+                LD R0, "data";
+                OUT;
+                HALT;
+        :data   FILL 0x30;
+        :data   FILL 0x31;
+                END;
     }
     .unwrap_err();
 }
