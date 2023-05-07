@@ -109,7 +109,7 @@ macro_rules! asm {
     (@inc STRINGZ $str:literal)   => { Some($str.len() as u16) };
     (@inc $op:ident $($t:expr),*) => { Some(1) };
 
-    ($($($lbl:literal:)* $op:ident $($t:expr),*;)*) => {{
+    ($($($lbl:literal:)? $op:ident $($t:expr),*;)+) => {{
         #[allow(unused_imports)]
         use $crate::assembler::{Inst::*, Program, Reg::*, SymbolTable};
         let mut code = Vec::new();
