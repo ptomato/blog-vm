@@ -57,7 +57,7 @@ pub type SymbolTable = MultiMap<&'static str, u16>;
 
 #[derive(Debug, Clone)]
 pub struct AssemblerError {
-    errors: Vec<(usize, String)>,
+    errors: Vec<(u16, String)>,
 }
 
 impl fmt::Display for AssemblerError {
@@ -152,7 +152,7 @@ impl Program {
     fn calc_offset(
         origin: u16,
         symtab: &SymbolTable,
-        pc: usize,
+        pc: u16,
         label: &'static str,
         bits: usize,
     ) -> Result<u16, String> {
@@ -194,9 +194,9 @@ impl Program {
         let mut words = Vec::new();
         let mut errors = Vec::new();
         for inst in code {
-            let pc = words.len();
+            let pc = u16::try_from(words.len()).unwrap();
             let append_error = |e| {
-                errors.push((pc, e));
+                errors.push((origin + pc, e));
                 0
             };
             match inst {
