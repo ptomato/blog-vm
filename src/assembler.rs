@@ -263,7 +263,7 @@ impl Program {
                     let (d, s) = (*dst as u16, *src as u16);
                     words.push(bitpack!("1001_dddsss111111"));
                 }
-                Rti => words.push(bitpack!("0001_000000000000")),
+                Rti => words.push(0b1000_000000000000),
                 St(src, label) => {
                     let s = *src as u16;
                     let o = Self::calc_offset(origin, symtab, pc, label, 9)
