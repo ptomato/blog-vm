@@ -152,12 +152,12 @@ impl VM {
             "0101dddsss1mmmmm" /* AND2 */ => self.dst(d, self.r(s) & sext(m, 5)),
             "0110dddbbboooooo" /* LDR  */ => { let v = self.ld(adr(self.r(b) + sext(o, 6))); self.dst(d, v); }
             "0111sssbbboooooo" /* STR  */ => self.st(adr(self.r(b) + sext(o, 6)), self.r(s)),
-            "1000????????????" /* n/a  */ => self.crash(&format!("Illegal instruction {:#04x}", i)),
+            "1000????????????" /* RTI  */ => self.crash("RTI not available in user mode"),
             "1001dddsss??????" /* NOT  */ => self.dst(d, !self.r(s)),
             "1010dddooooooooo" /* LDI  */ => { let a = self.iaddr(o); let v = self.ld(a); self.dst(d, v); }
             "1011sssooooooooo" /* STI  */ => { let a = self.iaddr(o); self.st(a, self.r(s)); }
             "1100???bbb??????" /* JMP  */ => self.jmp(self.r(b)),
-            "1101????????????" /* RTI  */ => self.crash("RTI not available in user mode"),
+            "1101????????????" /* n/a  */ => self.crash(&format!("Illegal instruction {:#04x}", i)),
             "1110dddooooooooo" /* LEA  */ => self.dst(d, self.pc() + sext(o, 9)),
             "1111????tttttttt" /* TRAP */ => self.trap(t),
         }
