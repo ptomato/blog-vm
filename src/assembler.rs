@@ -290,6 +290,9 @@ impl Program {
                 }
             }
         }
+        if words.len() > (0xffff - origin).into() {
+            errors.push((0xffff, "Program is too large to fit in memory".to_string()));
+        }
         if errors.is_empty() {
             Ok(Self {
                 origin,
@@ -353,6 +356,16 @@ fn duplicate_label() {
         :data   FILL 0x30;
         :data   FILL 0x31;
                 .END;
+    }
+    .unwrap_err();
+}
+
+#[test]
+fn too_big() {
+    asm! {
+        .ORIG 1;
+        BLKW 0xffff;
+        .END;
     }
     .unwrap_err();
 }
