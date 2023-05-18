@@ -189,14 +189,14 @@ impl Program {
         self.origin as usize
     }
 
-    pub fn bytecode(&self) -> &Vec<u16> {
+    pub fn bytecode(&self) -> &[u16] {
         &self.bytecode
     }
 
     #[bitmatch]
     pub fn assemble(
         origin: u16,
-        code: &Vec<Inst>,
+        code: &[Inst],
         symtab: &SymbolTable,
     ) -> Result<Self, AssemblerError> {
         use Inst::*;
