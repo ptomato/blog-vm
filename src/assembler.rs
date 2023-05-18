@@ -149,6 +149,18 @@ macro_rules! asm {
 }
 
 impl Program {
+    fn integer_fits(integer: i32, bits: usize) -> Result<u16, String> {
+        let shift = 32 - bits;
+        if integer << shift >> shift != integer {
+            Err(format!(
+                "Value x{:04x} is too large to fit in {} bits",
+                integer, bits
+            ))
+        } else {
+            Ok(integer as u16)
+        }
+    }
+
     fn calc_offset(
         origin: u16,
         symtab: &SymbolTable,
@@ -162,15 +174,12 @@ impl Program {
             }
             let addr = v[0];
             let offset = addr as i32 - origin as i32 - pc as i32 - 1;
-            let shift = 32 - bits;
-            if offset << shift >> shift != offset {
-                Err(format!(
+            Self::integer_fits(offset, bits).map_err(|_| {
+                format!(
                     "Label \"{}\" is too far away from instruction ({} words)",
                     label, offset
-                ))
-            } else {
-                Ok(offset as u16)
-            }
+                )
+            })
         } else {
             Err(format!("Undefined label \"{}\"", label))
         }
@@ -205,7 +214,8 @@ impl Program {
                     words.push(bitpack!("0001_dddsss000aaa"));
                 }
                 Add2(dst, src, imm) => {
-                    let (d, s, i) = (*dst as u16, *src as u16, *imm as u16);
+                    let (d, s) = (*dst as u16, *src as u16);
+                    let i = Self::integer_fits((*imm).into(), 5).unwrap_or_else(append_error);
                     words.push(bitpack!("0001_dddsss1iiiii"));
                 }
                 And1(dst, src1, src2) => {
@@ -213,7 +223,8 @@ impl Program {
                     words.push(bitpack!("0101_dddsss000aaa"));
                 }
                 And2(dst, src, imm) => {
-                    let (d, s, i) = (*dst as u16, *src as u16, *imm as u16);
+                    let (d, s) = (*dst as u16, *src as u16);
+                    let i = Self::integer_fits((*imm).into(), 5).unwrap_or_else(append_error);
                     words.push(bitpack!("0101_dddsss1iiiii"));
                 }
                 Blkw(len) => words.extend(vec![0; *len as usize]),
@@ -250,7 +261,8 @@ impl Program {
                     words.push(bitpack!("1010_dddooooooooo"));
                 }
                 Ldr(dst, base, offset) => {
-                    let (d, b, o) = (*dst as u16, *base as u16, *offset as u16);
+                    let (d, b) = (*dst as u16, *base as u16);
+                    let o = Self::integer_fits((*offset).into(), 6).unwrap_or_else(append_error);
                     words.push(bitpack!("0110_dddbbboooooo"));
                 }
                 Lea(dst, label) => {
@@ -277,7 +289,8 @@ impl Program {
                     words.push(bitpack!("1011_sssooooooooo"));
                 }
                 Str(src, base, offset) => {
-                    let (s, b, o) = (*src as u16, *base as u16, *offset as u16);
+                    let (s, b) = (*src as u16, *base as u16);
+                    let o = Self::integer_fits((*offset).into(), 6).unwrap_or_else(append_error);
                     words.push(bitpack!("0111_sssbbboooooo"));
                 }
                 Stringz(s) => {
@@ -358,6 +371,14 @@ fn duplicate_label() {
                 .END;
     }
     .unwrap_err();
+}
+
+#[test]
+fn out_of_range() {
+    asm! { .ORIG 0x3000; ADD R0, R0, 127; .END; }.unwrap_err();
+    asm! { .ORIG 0x3000; AND R0, R0, 127; .END; }.unwrap_err();
+    asm! { .ORIG 0x3000; LDR R0, R1, 127; .END; }.unwrap_err();
+    asm! { .ORIG 0x3000; STR R0, R1, 127; .END; }.unwrap_err();
 }
 
 #[test]
